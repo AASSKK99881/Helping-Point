@@ -1,0 +1,78 @@
+### 1. 测试注册功能 (创建一个叫 zhangsan 的用户)
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "zhangsan",
+  "password": "123456",
+  "role": "USER"
+}
+
+### 2. 测试登录功能 (用刚才注册的账号登录)
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "zhangsan",
+  "password": "123456"
+}
+
+### 3. 测试登录失败 (故意输错密码)
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "zhangsan",
+  "password": "wrongpassword"
+}
+### 4. 发布求助帖 (发布者ID=1，悬赏 20 积分)
+POST http://localhost:8080/api/tasks
+Content-Type: application/json
+
+{
+  "title": "急求一把雨伞",
+  "content": "我现在在图书馆门口，没带伞，谁能送一把过来？",
+  "location": "图书馆正门",
+  "eventTime": "现在",
+  "rewardPoints": 20,
+  "publisherId": 1
+}
+
+### 5. 查看待接单列表
+GET http://localhost:8080/api/tasks/pending
+
+### 6. 测试积分不足的情况 (悬赏 10000 分，应该失败)
+POST http://localhost:8080/api/tasks
+Content-Type: application/json
+
+{
+  "title": "想吃满汉全席",
+  "content": "太饿了",
+  "location": "宿舍",
+  "eventTime": "晚上",
+  "rewardPoints": 10000,
+  "publisherId": 1
+}
+### 7. 注册一个新用户 (充当接单人，ID应该是 2)
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "lisi",
+  "password": "123456",
+  "role": "USER"
+}
+
+### 8. lisi 接单 (假设刚才发布的任务ID是 1)
+# 注意：如果你的数据库里任务ID不是1，请手动修改 URL 里的数字
+POST http://localhost:8080/api/tasks/1/accept?userId=2
+
+### 9. zhangsan 确认完成 (ID:1)
+POST http://localhost:8080/api/tasks/1/complete?userId=1
+
+### 10. 管理员查询所有用户 (查看积分是否变化)
+# 预期：zhangsan 少了20分(变80)，lisi 多了20分(变120)
+GET http://localhost:8080/api/admin/users
+
+### 11. 管理员重置 lisi 的密码
+POST http://localhost:8080/api/admin/users/2/reset-password

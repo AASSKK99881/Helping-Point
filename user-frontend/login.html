@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 校园互助平台</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+/*         body {
+            font-family: sans-serif;
+            background: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .box {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        button.secondary {
+            background: #4CAF50;
+            margin-top: 10px;
+        }
+
+        .toggle-text {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #666;
+            cursor: pointer;
+            text-decoration: underline;
+        } */
+         /* 登录页独有的样式 */
+        body.login-page {
+            /* 加一个柔和的渐变背景 */
+            background: linear-gradient(135deg, #e0eae4 0%, #f4f7f6 100%);
+            display: flex; justify-content: center; align-items: center; height: 100vh;
+        }
+        .login-box { width: 360px; padding: 40px; text-align: center; }
+        .login-title { font-size: 24px; margin-bottom: 30px; color: var(--text-dark); }
+        .toggle-text { margin-top: 20px; color: var(--primary-color); cursor: pointer; font-weight: 600; }
+        .toggle-text:hover { text-decoration: underline; }
+    </style>
+</head>
+
+<body class="login-page"> <div class="box login-box"> <h2 id="title" class="login-title">🎉 欢迎回到校园互助</h2>
+        <input type="text" id="username" placeholder="请输入用户名">
+        <input type="password" id="password" placeholder="请输入密码">
+        <button id="btn-submit" class="btn-submit" onclick="handleLogin()" style="width:100%; margin-top: 20px;">登录</button>
+        <div class="toggle-text" onclick="toggleMode()">没有账号？点此注册</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script src="config.js"></script>
+
+    <script>
+        let isLoginMode = true; // 当前是否是登录模式
+
+        // 切换 登录/注册 模式
+        function toggleMode() {
+            isLoginMode = !isLoginMode;
+            const title = document.getElementById('title');
+            const btn = document.getElementById('btn-submit');
+            const toggle = document.querySelector('.toggle-text');
+
+            if (isLoginMode) {
+                title.innerText = "用户登录";
+                btn.innerText = "登录";
+                btn.style.background = "#2196F3"; // 蓝色
+                toggle.innerText = "没有账号？点此注册";
+            } else {
+                title.innerText = "新用户注册";
+                btn.innerText = "注册";
+                btn.style.background = "#4CAF50"; // 绿色
+                toggle.innerText = "已有账号？去登录";
+            }
+        }
+
+        // 处理点击事件
+        async function handleLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                // ❌ 替换 alert("请输入用户名和密码");
+                Swal.fire({
+                    icon: 'warning',
+                    title: '漏填啦',
+                    text: '请输入用户名和密码'
+                });
+                return;
+            }
+
+            if (isLoginMode) {
+                // --- 执行登录 ---
+                const res = await request('/auth/login', 'POST', { username, password });
+                if (res && res.code === 200) {
+                    // 清除旧ID，保存Token
+                    localStorage.removeItem('user_id');
+                    localStorage.setItem('user_token', res.token);
+                    localStorage.setItem('username', username);
+
+                    // ✅ 替换 alert("登录成功！");
+                    await Swal.fire({
+                        icon: 'success',
+                        title: '欢迎回来',
+                        text: '登录成功，正在跳转...',
+                        timer: 1500, // 1.5秒后自动关闭
+                        showConfirmButton: false
+                    });
+
+                    window.location.href = 'index.html';
+                } else {
+                    // ❌ 替换 alert("登录失败...");
+                    Swal.fire({
+                        icon: 'error',
+                        title: '登录失败',
+                        text: res ? res.msg : '账号或密码错误'
+                    });
+                }
+            } else {
+                // --- 执行注册 ---
+                const res = await request('/auth/register', 'POST', {
+                    username,
+                    password,
+                    role: "USER"
+                });
+                if (res && res.code === 200) {
+                    // ✅ 替换 alert("注册成功！");
+                    Swal.fire({
+                        icon: 'success',
+                        title: '注册成功',
+                        text: '快去登录体验吧！'
+                    });
+                    toggleMode();
+                } else {
+                    // ❌ 替换 alert("注册失败...");
+                    Swal.fire({
+                        icon: 'error',
+                        title: '注册失败',
+                        text: res ? res.msg : '用户名可能已存在'
+                    });
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
