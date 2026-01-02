@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的任务 - 校园互助平台</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+/*         body { margin: 0; font-family: 'Segoe UI', sans-serif; background-color: #f5f7fa; }
+        .navbar { background-color: white; padding: 0 20px; height: 60px; display: flex; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .back-link { text-decoration: none; color: #666; font-size: 14px; display: flex; align-items: center; }
+        .back-link:hover { color: #2196F3; }
+
+        .container { max-width: 800px; margin: 30px auto; padding: 0 15px; }
+        
+        
+        .tabs { display: flex; gap: 20px; border-bottom: 2px solid #ddd; margin-bottom: 20px; }
+        .tab { padding: 10px 20px; cursor: pointer; color: #666; font-weight: bold; position: relative; }
+        .tab.active { color: #2196F3; }
+        .tab.active::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 2px; background: #2196F3; }
+
+        .task-card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .task-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .task-title { font-weight: bold; font-size: 16px; }
+        .status-badge { font-size: 12px; padding: 2px 6px; border-radius: 4px; }
+        
+       
+        .status-PENDING { background: #e3f2fd; color: #2196F3; } 
+        .status-ACCEPTED { background: #fff3e0; color: #ff9800; } 
+        .status-COMPLETED { background: #e8f5e9; color: #4CAF50; } 
+
+        .btn-complete { background: #ff9800; color: white; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-complete:hover { background: #f57c00; }
+        
+        .empty-tip { text-align: center; color: #999; margin-top: 40px; }
+        .btn-abandon { background: #f44336; color: white; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-abandon:hover { background: #d32f2f; } */
+    </style>
+</head>
+<body>
+    
+    <div class="navbar">
+        <a href="index.html" class="back-link">← 返回大厅</a>
+    </div>
+
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('published')">我发布的</div>
+            <div class="tab" onclick="switchTab('accepted')">我接受的</div>
+        </div>
+
+        <div id="task-list">
+            </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script src="config.js"></script>
+    <script>
+        let allTasks = []; // 暂存所有任务
+        let currentTab = 'published'; // 当前选中的标签
+        const currentUserId = parseInt(localStorage.getItem('user_id'));
+
+        window.onload = async function() {
+            if (!localStorage.getItem('user_token')) {
+                window.location.href = 'login.html';
+                return;
+            }
+            if (!currentUserId) {
+                alert("身份信息丢失，请重新登录");
+                window.location.href = 'login.html';
+                return;
+            }
+            await fetchAllTasks();
+            renderList();
+        };
+
+        // 1. 获取所有任务 (然后前端过滤)
+        async function fetchAllTasks() {
+            // 这里调用了后端的“查询所有”接口，虽然是管理员用的，但普通用户带Token也能调
+            const res = await request('/tasks'); 
+            if (res && res.code === 200) {
+                allTasks = res.data;
+            }
+        }
+
+        // 2. 渲染列表
+        function renderList() {
+            const listDiv = document.getElementById('task-list');
+            let filteredList = [];
+
+            if (currentTab === 'published') {
+                // 筛选出发布者ID等于我的ID的任务
+                filteredList = allTasks.filter(t => t.publisherId === currentUserId);
+            } else {
+                // 筛选出接单者ID等于我的ID的任务
+                filteredList = allTasks.filter(t => t.accepterId === currentUserId);
+            }
+
+            if (filteredList.length === 0) {
+                listDiv.innerHTML = '<div class="empty-tip">这里空空如也</div>';
+                return;
+            }
+
+            let html = '';
+            // 按时间倒序，最新的在上面
+            filteredList.sort((a, b) => new Date(b.createTime) - new Date(a.createTime));
+
+            filteredList.forEach(task => {
+                let actionBtn = '';
+                
+                // 情况1: 我发布的，且正在进行中 -> 显示“确认完成”
+                if (currentTab === 'published' && task.status === 'ACCEPTED') {
+                    actionBtn = `<button class="btn-complete" onclick="confirmComplete(${task.id})">✅ 确认完成</button>`;
+                }
+                else if (currentTab === 'published' && task.status === 'PENDING') {
+                    // 使用 class="btn-danger" (红色按钮)
+                    actionBtn = `<button class="btn-danger" onclick="deleteTask(${task.id})">🗑️ 删除</button>`;
+                }
+                
+                // 情况2: 我接受的，且正在进行中 -> 显示“放弃任务” (新功能)
+                else if (currentTab === 'accepted' && task.status === 'ACCEPTED') {
+                    // 计算预计扣分
+                    const penalty = Math.max(1, Math.floor(task.rewardPoints * 0.1));
+                    actionBtn = `<button class="btn-abandon" onclick="abandonTask(${task.id}, ${penalty})">🏳️ 放弃任务</button>`;
+                }
+
+                html += `
+                    <div class="task-card">
+                        <div class="task-header">
+                            <span class="task-title">${task.title} <small style="color:#999">(${task.rewardPoints}分)</small></span>
+                            <span class="status-badge status-${task.status}">${formatStatus(task.status)}</span>
+                        </div>
+                        <div style="color:#666; font-size:14px; margin-bottom:10px">${task.content}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center">
+                            <span style="font-size:12px; color:#aaa">发布于: ${task.createTime.replace('T', ' ')}</span>
+                            ${actionBtn}
+                        </div>
+                    </div>
+                `;
+            });
+            listDiv.innerHTML = html;
+        }
+
+        // 3. 确认完成功能
+ // 3. 确认完成功能 (美化版)
+        async function confirmComplete(taskId) {
+            // 使用 Swal.fire 替换 confirm
+            const result = await Swal.fire({
+                title: '确认已完成？',
+                text: "确定对方已经完成了你的请求吗？确认后积分将转给对方。",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#4CAF50', // 绿色按钮
+                cancelButtonColor: '#d33',     // 红色按钮
+                confirmButtonText: '是的，确认结算!',
+                cancelButtonText: '再等等'
+            });
+
+            // 如果用户点了"取消"，直接返回，不执行后面代码
+            if (!result.isConfirmed) return;
+
+            const res = await request(`/tasks/${taskId}/complete?userId=${currentUserId}`, 'POST');
+            
+            if (res && res.code === 200) {
+                await Swal.fire('结算成功!', '积分已转给对方。', 'success');
+                await fetchAllTasks(); 
+                renderList(); 
+            } else {
+                Swal.fire('操作失败', res ? res.msg : "未知错误", 'error');
+            }
+        }
+
+        // 切换标签页
+        function switchTab(type) {
+            currentTab = type;
+            // 更新CSS样式
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+            renderList();
+        }
+
+        function formatStatus(status) {
+            const map = { 'PENDING': '待接单', 'ACCEPTED': '进行中', 'COMPLETED': '已完成' };
+            return map[status] || status;
+        }
+        // 放弃任务功能
+// 放弃任务功能 (美化版)
+        async function abandonTask(taskId, penalty) {
+            const result = await Swal.fire({
+                title: '确定要放弃吗？',
+                html: `⚠️ 将扣除 <b style="color:red">${penalty}</b> 积分作为违约金！<br>放弃后任务将重新回到大厅。`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33', // 红色警告色
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: '含泪放弃',
+                cancelButtonText: '我再坚持一下'
+            });
+
+            if (!result.isConfirmed) return;
+
+            const res = await request(`/tasks/${taskId}/abandon?userId=${currentUserId}`, 'POST');
+            
+            if (res && res.code === 200) {
+                await Swal.fire('已放弃', '违约金已扣除，下次加油！', 'success');
+                await fetchAllTasks(); 
+                renderList(); 
+            } else {
+                Swal.fire('操作失败', res ? res.msg : "未知错误", 'error');
+            }
+        }
+
+        // 删除任务功能
+        async function deleteTask(taskId) {
+            // SweetAlert2 弹窗确认
+            const result = await Swal.fire({
+                title: '确定删除？',
+                text: "删除后，悬赏积分将自动退还到你的账户。",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: '是的，删除！',
+                cancelButtonText: '取消'
+            });
+
+            if (!result.isConfirmed) return;
+
+            // 调用后端删除接口
+            // 注意中间加了 /published
+            const res = await request(`/tasks/published/${taskId}?userId=${currentUserId}`, 'DELETE');
+            
+            if (res && res.code === 200) {
+                await Swal.fire('已删除', '任务已取消，积分已退回。', 'success');
+                await fetchAllTasks(); // 刷新数据
+                renderList(); // 刷新界面
+            } else {
+                Swal.fire('删除失败', res ? res.msg : "未知错误", 'error');
+            }
+        }
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>发布求助 - 校园互助平台</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- <style>
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background-color: #f5f7fa; }
+        .navbar { background-color: white; padding: 0 20px; height: 60px; display: flex; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .back-link { text-decoration: none; color: #666; font-size: 14px; display: flex; align-items: center; }
+        .back-link:hover { color: #2196F3; }
+        
+        .container { max-width: 600px; margin: 30px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        h2 { margin-top: 0; color: #333; text-align: center; margin-bottom: 30px; }
+        
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; }
+        input, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-family: inherit; transition: 0.2s; }
+        input:focus, textarea:focus { border-color: #2196F3; outline: none; }
+        textarea { height: 120px; resize: vertical; }
+        
+        .btn-submit { width: 100%; padding: 14px; background-color: #2196F3; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+        .btn-submit:hover { background-color: #1976D2; }
+        
+        .tips { background: #e3f2fd; color: #0d47a1; padding: 10px; border-radius: 4px; font-size: 13px; margin-bottom: 20px; }
+    </style> -->
+</head>
+<body>
+    
+    <div class="navbar">
+        <a href="index.html" class="back-link">← 返回大厅</a>
+    </div>
+
+    <div class="container">
+        <h2>发布新求助</h2>
+        
+        <div class="tips">
+            💡 提示：发布求助将暂时扣除对应积分，任务完成后积分将转给帮助者。
+        </div>
+
+        <div class="form-group">
+            <label>标题 (简明扼要)</label>
+            <input type="text" id="title" placeholder="例如：图书馆占座、帮忙取快递">
+        </div>
+
+        <div class="form-group">
+            <label>详细描述</label>
+            <textarea id="content" placeholder="请详细描述你的需求..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>地点</label>
+            <input type="text" id="location" placeholder="例如：第二教学楼 305">
+        </div>
+
+        <div class="form-group">
+            <label>时间要求</label>
+            <input type="text" id="eventTime" placeholder="例如：今天下午 3 点前">
+        </div>
+
+        <div class="form-group">
+            <label>悬赏积分</label>
+            <input type="number" id="rewardPoints" placeholder="输入整数，例如 20">
+        </div>
+
+        <div class="form-group">
+            <label>添加标签 (选填)</label>
+            <input type="text" id="tags" placeholder="例如：跑腿 取快递 (用空格或逗号分隔)">
+        </div>
+
+        <div class="form-group">
+            <label>悬赏积分</label>
+            <input type="number" id="rewardPoints" placeholder="输入整数，例如 20">
+        </div>
+
+        <div class="container container-box">
+        <h2 style="text-align: center; margin-bottom: 30px;">✨ 发布新求助</h2>
+        <button class="btn-submit" onclick="submitTask()" style="width:100%; margin-top:10px;">立即发布</button>
+
+        <!-- <button class="btn-submit" onclick="submitTask()">立即发布</button> -->
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script src="config.js"></script>
+    <script>
+        // 检查登录状态
+        window.onload = function() {
+            if (!localStorage.getItem('user_token')) {
+                alert("请先登录");
+                window.location.href = 'login.html';
+            }
+        }
+
+        async function submitTask() {
+            // 1. 获取表单数据
+            const title = document.getElementById('title').value;
+            const content = document.getElementById('content').value;
+            const location = document.getElementById('location').value;
+            const eventTime = document.getElementById('eventTime').value;
+            const rewardPoints = document.getElementById('rewardPoints').value;
+
+            // 2. 简单校验
+            if (!title || !content || !rewardPoints) {
+                alert("请完整填写标题、内容和悬赏积分");
+                return;
+            }
+
+            // 👇 1. 获取标签内容
+            let tagsRaw = document.getElementById('tags').value;
+            // 简单处理：把中文逗号换成英文逗号
+            const tags = tagsRaw ? tagsRaw.replace(/[\s，]+/g, ',') : '';
+
+            // 3. 获取发布者 ID
+            const publisherId = localStorage.getItem('user_id');
+            if (!publisherId) {
+                alert("用户信息获取失败，请重新登录");
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // 4. 发送请求
+            const data = {
+                title,
+                content,
+                location,
+                eventTime,
+                rewardPoints: parseInt(rewardPoints), // 确保转成数字
+                publisherId: parseInt(publisherId),
+                tags: tags // 👈 2. 别忘了把 tags 放进 data 里传给后端
+            };
+
+            // ... 前面的代码不变 ...
+            const res = await request('/tasks', 'POST', data);
+
+            if (res && res.code === 200) {
+                // ✅ 美化发布成功
+                await Swal.fire({
+                    icon: 'success',
+                    title: '发布成功',
+                    text: '正在跳转回大厅...',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                window.location.href = 'index.html'; 
+            } else {
+                // ❌ 美化失败
+                Swal.fire({
+                    icon: 'error',
+                    title: '发布失败',
+                    text: res ? res.msg : "积分不足或系统错误"
+                });
+            }
+        }
+    </script>
+</body>
+</html>
