@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互助大厅 - 校园互助平台</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- <style>
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background-color: #f5f7fa; }
+        
+        /* 顶部导航栏 */
+        .navbar { background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 0 20px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+        .logo { font-size: 20px; font-weight: bold; color: #2196F3; }
+        .nav-links { display: flex; gap: 20px; align-items: center; }
+        .nav-links a { text-decoration: none; color: #666; font-size: 15px; cursor: pointer; transition: 0.2s; }
+        .nav-links a:hover { color: #2196F3; }
+        .btn-publish { background-color: #2196F3; color: white !important; padding: 8px 16px; border-radius: 20px; font-weight: bold; }
+        
+        /* 主要内容区 */
+        .container { max-width: 800px; margin: 20px auto; padding: 0 15px; }
+        
+        /* 帖子卡片样式 */
+        .task-card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: 0.2s; border-left: 5px solid #2196F3; }
+        .task-card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .task-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .task-title { font-size: 18px; font-weight: bold; color: #333; margin: 0; }
+        .task-reward { color: #ff9800; font-weight: bold; background: #fff3e0; padding: 4px 8px; border-radius: 4px; font-size: 14px; }
+        .task-content { color: #666; font-size: 14px; margin-bottom: 15px; line-height: 1.6; }
+        .task-meta { display: flex; gap: 15px; font-size: 12px; color: #999; margin-bottom: 15px; }
+        .task-meta span { display: flex; align-items: center; }
+        
+        /* 按钮区 */
+        .action-area { border-top: 1px solid #eee; padding-top: 15px; text-align: right; }
+        .btn-accept { background-color: #4CAF50; color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-size: 14px; transition: 0.2s; }
+        .btn-accept:hover { background-color: #43a047; }
+        
+        /* 空状态 */
+        .empty-state { text-align: center; color: #999; margin-top: 50px; }
+    </style> -->
+</head>
+
+<body>
+
+    <div class="navbar">
+        <div class="logo">🏫 校园互助</div>
+        <div class="nav-links">
+            <span id="welcome-msg">你好, 用户</span>
+
+            <span class="points-badge" id="my-points" style="display:none">💰 --</span>
+
+            <a href="publish.html" class="btn-publish">+ 发布求助</a>
+            <a href="my-tasks.html">我的任务</a>
+            <a href="#" onclick="logout()">退出</a>
+        </div>
+    </div>
+
+
+
+    <div class="container">
+        <h3 style="color: #444; margin-bottom: 20px;">最新求助 · 等待接单</h3>
+        <div id="task-list">
+            <div class="empty-state">加载中...</div>
+        </div>
+    </div>
+
+    <!--     <div class="nav-links">
+        <span id="welcome-msg">你好, 用户</span>
+
+        <span class="points-badge" id="my-points" style="display:none">💰 --</span>
+
+        <a href="publish.html" class="btn-publish">+ 发布求助</a>
+        <a href="my-tasks.html">我的任务</a>
+        <a href="#" onclick="logout()">退出</a>
+    </div> -->
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script src="config.js"></script>
+    <script>
+        // 1. 页面加载时执行
+        window.onload = async function () {
+            // 1. 检查登录
+            const token = localStorage.getItem('user_token');
+            const username = localStorage.getItem('username');
+            if (!token || !username) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            document.getElementById('welcome-msg').innerText = `你好, ${username}`;
+
+            // 2. 获取用户 ID (这一步你原来就有，保留)
+            await fetchCurrentUserId(username);
+
+            // 👇👇👇【这里少了！必须加上这一行！】👇👇👇
+            await loadUserInfo();
+            // 👆👆👆 只有加了这行，积分才会显示出来 👆👆👆
+
+            // 3. 加载任务列表
+            loadPendingTasks();
+        };
+
+async function loadUserInfo() {
+            // 尝试获取 ID
+            let userId = localStorage.getItem('user_id');
+            
+            // 🛡️ 保险措施：如果没找到 ID，再试着去后端问一次
+            if (!userId) {
+                const username = localStorage.getItem('username');
+                if (username) {
+                    await fetchCurrentUserId(username); // 再查一次
+                    userId = localStorage.getItem('user_id'); // 再拿一次
+                }
+            }
+
+            // 如果还是没有，那真没办法了，退出
+            if (!userId) {
+                console.error("无法获取用户ID，积分加载失败");
+                return;
+            }
+
+            // 调用后端接口
+            const res = await request(`/users/${userId}`);
+            
+            if (res && res.code === 200) {
+                const user = res.data;
+                const pointsSpan = document.getElementById('my-points');
+                pointsSpan.style.display = 'inline-flex'; 
+                pointsSpan.innerHTML = `💰 ${user.points}`; 
+                localStorage.setItem('user_points', user.points);
+            }
+        }
+
+        // 获取用户ID的辅助函数
+        async function fetchCurrentUserId(username) {
+            if (localStorage.getItem('user_id')) return; // 如果有了就不查了
+
+            // 利用已有的搜索接口查自己
+            const res = await request(`/admin/users/search?keyword=${username}`);
+            if (res && res.code === 200 && res.data) {
+                const me = res.data.find(u => u.username === username);
+                if (me) {
+                    console.log("获取身份成功, ID:", me.id);
+                    localStorage.setItem('user_id', me.id);
+                }
+            }
+        }
+
+        // 2. 加载待接单列表
+        async function loadPendingTasks() {
+            const listDiv = document.getElementById('task-list');
+            const res = await request('/tasks/pending'); 
+
+            if (res && res.code === 200) {
+                const tasks = res.data;
+                if (tasks.length === 0) {
+                    listDiv.innerHTML = '<div class="empty-state">暂时没有待接单的求助，快去发布一个吧！</div>';
+                    return;
+                }
+
+                let html = '';
+                tasks.forEach(task => {
+                    // 👇👇👇【新增：处理标签显示】👇👇👇
+                    let tagsHtml = '';
+                    if (task.tags) { 
+                        const tagArray = task.tags.split(','); // 按逗号分割
+                        tagsHtml = '<div class="task-tags">';
+                        tagArray.forEach(tag => {
+                            if(tag && tag.trim()) { // 防止空标签
+                                // data-tag用于CSS里匹配特殊颜色
+                                tagsHtml += `<span class="tag-badge" data-tag="${tag.trim()}">${tag.trim()}</span>`;
+                            }
+                        });
+                        tagsHtml += '</div>';
+                    }
+                    // 👆👆👆【新增结束】👆👆👆
+
+                    html += `
+                    <div class="task-card pending"> 
+                        <div class="task-header">
+                            <h3 class="task-title">${task.title}</h3>
+                            <span class="task-reward">💰 ${task.rewardPoints} 积分</span>
+                        </div>
+                        <div class="task-content">${task.content}</div>
+                        <div class="task-meta">
+                            <span>📍 ${task.location}</span>
+                            <span>🕒 ${task.eventTime}</span>
+                            <span>👤 ID:${task.publisherId}</span>
+                        </div>
+
+                        ${tagsHtml}
+                        
+                        <div class="action-area" style="border-top: 1px solid #eee; padding-top: 20px; text-align: right;">
+                            <button class="btn-accept" onclick="acceptTask(${task.id})">✋ 我来帮 TA</button>
+                        </div>
+                    </div>
+                `;
+                });
+                listDiv.innerHTML = html;
+            } else {
+                listDiv.innerHTML = '<div class="empty-state">加载失败</div>';
+            }
+        }
+
+        // 3. 接单功能
+        async function acceptTask(taskId) {
+            const userId = localStorage.getItem('user_id');
+            if (!userId) {
+                alert("身份信息未同步，请刷新页面重试");
+                return;
+            }
+
+            if (!confirm("确定要接下这个任务吗？接单后请尽快联系发布者。")) return;
+
+            // 调用接单接口
+            // URL: /api/tasks/{id}/accept?userId=xxx
+            const res = await request(`/tasks/${taskId}/accept?userId=${userId}`, 'POST');
+
+            if (res && res.code === 200) {
+                alert("🎉 接单成功！请在'我的任务'中查看详情");
+                loadPendingTasks(); // 刷新列表，刚才那条应该会消失
+            } else {
+                alert("接单失败: " + (res ? res.msg : "未知错误"));
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('user_token');
+            localStorage.removeItem('user_id');
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+
+</html>

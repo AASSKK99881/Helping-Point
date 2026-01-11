@@ -1,0 +1,200 @@
+/* 1. 引入现代中文字体 (Noto Sans SC) - 需要联网 */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
+
+/* 2. 定义全局变量 (方便统一修改主题色) */
+:root {
+    --primary-color: #3498db;    /* 主色调：清新的蓝色 (用于按钮、链接) */
+    --primary-dark: #2980b9;     /* 主色调深色 (用于hover) */
+    --secondary-color: #f39c12;  /* 辅助色：温暖的橙色 (用于积分、强调) */
+    --success-color: #2ecc71;    /* 成功色：绿色 */
+    --danger-color: #e74c3c;     /* 警告色：红色 */
+    --bg-light: #f4f7f6;         /* 页面背景色：非常淡的灰绿色，不刺眼 */
+    --text-dark: #2c3e50;        /* 深色文字 */
+    --text-gray: #7f8c8d;        /* 灰色文字 */
+    --border-radius: 12px;       /* 圆角大小 */
+    /* 现代化的卡片阴影 */
+    --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    /* 鼠标悬停时的阴影 */
+    --hover-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+/* 3. 全局基础样式 */
+body {
+    margin: 0;
+    font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+    line-height: 1.6; /* 增加行高，阅读更舒适 */
+}
+
+a { text-decoration: none; color: inherit; transition: color 0.3s; }
+
+/* 4. 组件：导航栏 (Navbar) */
+.navbar {
+    background-color: rgba(255, 255, 255, 0.95); /*稍微透明 */
+    backdrop-filter: blur(10px); /* 毛玻璃效果 (高级感!) */
+    padding: 0 30px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+.logo {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.nav-links { display: flex; gap: 25px; align-items: center; font-weight: 500; }
+.nav-links a:hover { color: var(--primary-color); }
+/* 发布按钮特别样式 */
+.btn-publish {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white !important;
+    padding: 10px 24px;
+    border-radius: 30px;
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+    transition: transform 0.3s, box-shadow 0.3s !important;
+}
+.btn-publish:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+}
+
+/* 5. 组件：通用容器 */
+.container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+
+/* 6. 组件：现代化卡片 (Card) */
+.task-card, .box, .container-box {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: var(--card-shadow);
+    transition: all 0.3s ease; /* 平滑过渡 */
+    border: none; /* 去掉旧的边框 */
+}
+/* 卡片悬停效果 */
+.task-card:hover {
+    transform: translateY(-5px); /* 向上浮动 */
+    box-shadow: var(--hover-shadow);
+}
+/* 大厅卡片左侧装饰条 */
+.task-card.pending { border-left: 5px solid var(--primary-color); }
+
+/* 7. 组件：卡片内部元素 */
+.task-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.task-title { font-size: 18px; font-weight: 700; color: var(--text-dark); margin: 0; }
+.task-reward {
+    color: var(--secondary-color);
+    font-weight: 700;
+    background: #fff8e1; /* 淡淡的橙色背景 */
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    display: flex; align-items: center; gap: 4px;
+}
+.task-content { color: var(--text-gray); font-size: 15px; margin-bottom: 18px; }
+.task-meta { display: flex; gap: 20px; font-size: 13px; color: #aaa; margin-bottom: 18px; flex-wrap: wrap;}
+.task-meta span { display: flex; align-items: center; gap: 5px; }
+
+/* 8. 组件：按钮 (Button) */
+button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    transition: all 0.3s;
+    font-family: inherit;
+}
+/* 主要操作按钮 */
+.btn-main, .btn-accept, .btn-submit { background-color: var(--primary-color); color: white; }
+.btn-main:hover, .btn-accept:hover, .btn-submit:hover { background-color: var(--primary-dark); transform: translateY(-2px); box-shadow: 0 4px 10px rgba(52, 152, 219, 0.2); }
+/* 绿色按钮 */
+.btn-success, .btn-complete { background-color: var(--success-color); color: white; }
+.btn-success:hover, .btn-complete:hover { filter: brightness(90%); transform: translateY(-2px); }
+/* 红色按钮 */
+.btn-danger, .btn-abandon { background-color: var(--danger-color); color: white; }
+.btn-danger:hover, .btn-abandon:hover { filter: brightness(90%); transform: translateY(-2px); }
+
+/* 9. 组件：表单 (Form) */
+.form-group { margin-bottom: 25px; }
+label { display: block; margin-bottom: 10px; color: var(--text-dark); font-weight: 600; }
+input, textarea {
+    width: 100%;
+    padding: 14px;
+    border: 2px solid #eee; /* 更淡的边框 */
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-family: inherit;
+    font-size: 15px;
+    transition: 0.3s;
+    background-color: #fcfcfc;
+}
+/* 输入框聚焦效果 */
+input:focus, textarea:focus {
+    border-color: var(--primary-color);
+    background-color: white;
+    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1); /* 发光效果 */
+    outline: none;
+}
+textarea { height: 120px; resize: vertical; }
+.tips { background: #eef7fe; color: var(--primary-dark); padding: 15px; border-radius: 8px; font-size: 14px; margin-bottom: 25px; border-left: 4px solid var(--primary-color); }
+
+/* 10. 组件：状态标签与选项卡 (Badge & Tabs) */
+.status-badge { font-size: 13px; padding: 4px 10px; border-radius: 20px; font-weight: 600;}
+.status-PENDING { background: #eef7fe; color: var(--primary-color); }
+.status-ACCEPTED { background: #fff8e1; color: var(--secondary-color); }
+.status-COMPLETED { background: #eafaf1; color: var(--success-color); }
+
+.tabs { display: flex; gap: 30px; border-bottom: 2px solid #eee; margin-bottom: 30px; }
+.tab { padding: 15px 5px; cursor: pointer; color: var(--text-gray); font-weight: 600; position: relative; transition: 0.3s; font-size: 16px;}
+.tab.active { color: var(--primary-color); }
+.tab.active::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 3px; background: var(--primary-color); border-radius: 3px 3px 0 0; }
+
+/* 空状态 */
+.empty-state, .empty-tip { text-align: center; color: #aaa; margin-top: 60px; font-size: 18px; font-weight: 500; }
+
+/* 积分小胶囊样式 */
+.points-badge {
+    background-color: #fff8e1; /* 淡橙色背景 */
+    color: #f39c12;            /* 橙色文字 */
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 14px;
+    border: 1px solid #ffe0b2;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* --- 标签相关样式 --- */
+.task-tags {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px; /* 标签之间的间距 */
+}
+
+.tag-badge {
+    background-color: #f0f2f5; /* 默认灰色背景 */
+    color: #555;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 12px; /* 圆角胶囊形状 */
+    border: 1px solid #e1e4e8;
+}
+
+/* 一些特殊颜色的标签 (可选) */
+.tag-badge[data-tag="急"] { background: #ffebee; color: #d32f2f; border-color: #ffcdd2; }
+.tag-badge[data-tag="跑腿"] { background: #e3f2fd; color: #1976d2; border-color: #bbdefb; }
